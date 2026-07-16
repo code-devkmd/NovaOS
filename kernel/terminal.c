@@ -39,6 +39,22 @@ void terminal_putchar(char c)
         return;
     }
 
+    if (c == '\b')
+    {
+        if (column > 0)
+        {
+            column--;
+        }
+        else if (row > 0)
+        {
+            row--;
+            column = VGA_WIDTH - 1;
+        }
+
+        VGA[row * VGA_WIDTH + column] = (color << 8) | ' ';
+        return;
+    }
+
     VGA[row * VGA_WIDTH + column] =
         (color << 8) | c;
 

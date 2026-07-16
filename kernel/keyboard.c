@@ -1,5 +1,4 @@
 #include "keyboard.h"
-#include "terminal.h"
 
 static inline unsigned char inb(unsigned short port)
 {
@@ -8,38 +7,108 @@ static inline unsigned char inb(unsigned short port)
     return value;
 }
 
+static int shift = 0;
+
 static const char keymap[128] = {
     0,
-    27,     // Esc
+    27,
     '1','2','3','4','5','6','7','8','9','0',
     '-','=', '\b',
     '\t',
     'q','w','e','r','t','y','u','i','o','p',
     '[',']',
     '\n',
-    0,      // Ctrl
+    0,
     'a','s','d','f','g','h','j','k','l',
     ';','\'','`',
-    0,      // Left Shift
+    0,
     '\\',
     'z','x','c','v','b','n','m',
     ',', '.', '/',
-    0,      // Right Shift
+    0,
     '*',
-    0,      // Alt
+    0,
+    ' ',
+};
+
+static const char keymap_shift[128] = {
+    0,
+    27,
+    '!','@','#','$','%','^','&','*','(',')',
+    '_','+', '\b',
+    '\t',
+    'Q','W','E','R','T','Y','U','I','O','P',
+    '{','}',
+    '\n',
+    0,
+    'A','S','D','F','G','H','J','K','L',
+    ':','"','~',
+    0,
+    '|',
+    'Z','X','C','V','B','N','M',
+    '<','>','?',
+    0,
+    '*',
+    0,
     ' ',
 };
 
 char keyboard_getchar(void)
 {
-    unsigned char scancode = inb(0x60);
+    static unsigned char last = 0;
 
-    // Ignore key releases
-    if (scancode & 0x80)
+    if (!(inb(0x64) & 1))
         return 0;
 
-    if (scancode < sizeof(keymap))
-        return keymap[scancode];
+    unsigned char scancode = inb(0x60);
 
-    return 0;
+    if (scancode == last)
+        return 0;
+
+    last = scancode;
+
+    // Left Shift press
+    if (scancode == 0x2A)
+    {
+        shift = 1;
+        return 0;
+    }
+
+    // Right Shift press
+    if (scancode == 0x36)
+    {
+        shift = 1;
+        return 0;
+    }
+
+    // Left Shift release
+    if (scancode == 0xAA)
+    {
+        shift = 0;
+        last = 0;
+        return 0;
+    }
+
+    // Right Shift release
+    if (scancode == 0xB6)
+    {
+        shift = 0;
+        last = 0;
+        return 0;
+    }
+
+    // Ignore other key releases
+    if (scancode & 0x80)
+    {
+        last = 0;
+        return 0;
+    }
+
+    if (scancode >= 128)
+        return 0;
+
+    if (shift)
+        return keymap_shift[scancode];
+
+    return keymap[scancode];
 }
