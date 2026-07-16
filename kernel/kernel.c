@@ -1,6 +1,7 @@
 #include "terminal.h"
 #include "io.h"
 #include "keyboard.h"
+#include "shell.h"
 
 void kernel_main(void)
 {
@@ -18,9 +19,7 @@ void kernel_main(void)
 
     terminal_setcolor(0x0F);
 
-    terminal_write("This is my operating system.\n\n");
-
-    terminal_write("\nType something: ");
+    shell_start();
 
     char input[80];
     size_t index = 0;
@@ -54,7 +53,7 @@ void kernel_main(void)
             }
 
             index = 0;
-            terminal_write("Type something: ");
+            shell_start();
         }
         else if (index < 79)
         {

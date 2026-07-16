@@ -8,6 +8,7 @@ static inline unsigned char inb(unsigned short port)
 }
 
 static int shift = 0;
+static int caps = 0;
 
 static const char keymap[128] = {
     0,
@@ -57,31 +58,33 @@ char keyboard_getchar(void)
 {
     static unsigned char last = 0;
 
+    // No keyboard data available
     if (!(inb(0x64) & 1))
         return 0;
 
     unsigned char scancode = inb(0x60);
 
+    // Ignore duplicate scancodes
     if (scancode == last)
         return 0;
 
     last = scancode;
 
-    // Left Shift press
+    // Left Shift pressed
     if (scancode == 0x2A)
     {
         shift = 1;
         return 0;
     }
 
-    // Right Shift press
+    // Right Shift pressed
     if (scancode == 0x36)
     {
         shift = 1;
         return 0;
     }
 
-    // Left Shift release
+    // Left Shift released
     if (scancode == 0xAA)
     {
         shift = 0;
@@ -89,7 +92,7 @@ char keyboard_getchar(void)
         return 0;
     }
 
-    // Right Shift release
+    // Right Shift released
     if (scancode == 0xB6)
     {
         shift = 0;
@@ -97,7 +100,14 @@ char keyboard_getchar(void)
         return 0;
     }
 
-    // Ignore other key releases
+    // Caps Lock pressed
+    if (scancode == 0x3A)
+    {
+        caps = !caps;
+        return 0;
+    }
+
+    // Ignore all other key releases
     if (scancode & 0x80)
     {
         last = 0;
@@ -107,8 +117,24 @@ char keyboard_getchar(void)
     if (scancode >= 128)
         return 0;
 
-    if (shift)
-        return keymap_shift[scancode];
+    char c;
 
-    return keymap[scancode];
+    // Handle letters
+    if (keymap[scancode] >= 'a' && keymap[scancode] <= 'z')
+    {
+        if (shift ^ caps)
+            c = keymap_shift[scancode];
+        else
+            c = keymap[scancode];
+    }
+    else
+    {
+        // Numbers and symbols only change with Shift
+        if (shift)
+            c = keymap_shift[scancode];
+        else
+            c = keymap[scancode];
+    }
+
+    return c;
 }
