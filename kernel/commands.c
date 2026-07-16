@@ -11,7 +11,7 @@ void cmd_clear(void) {
 
 void cmd_about(void) {
     terminal_write("NovaOS v0.3\n");
-    terminal_write("A hobby operating system written in C\n\t Made by Nandeshore.");
+    terminal_write("A hobby operating system written in C\n\t Built by Nandeshore.\n");
 }
 
 void cmd_echo(char *args) {
