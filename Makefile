@@ -6,7 +6,7 @@ CFLAGS = -m32 -ffreestanding -fno-pie -fno-stack-protector -nostdlib
 ASFLAGS = -m32
 LDFLAGS = -m elf_i386 -T linker.ld
 
-OBJS = boot.o kernel.o terminal.o io.o keyboard.o shell.o
+OBJS = boot.o kernel.o terminal.o io.o keyboard.o shell.o string.o commands.o
 
 all: iso
 
@@ -26,6 +26,12 @@ keyboard.o: kernel/keyboard.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 shell.o: kernel/shell.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+string.o: kernel/string.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+commands.o: kernel/commands.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 kernel.bin: $(OBJS)
