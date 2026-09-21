@@ -9,6 +9,7 @@ void print(const char *str)
 void print_int(int num)
 {
     char buffer[12];
+    unsigned int value;
     int i = 0;
 
     if (num == 0)
@@ -20,13 +21,17 @@ void print_int(int num)
     if (num < 0)
     {
         terminal_putchar('-');
-        num = -num;
+        value = (unsigned int)(-(num + 1)) + 1;
+    }
+    else
+    {
+        value = (unsigned int)num;
     }
 
-    while (num > 0)
+    while (value > 0)
     {
-        buffer[i++] = '0' + (num % 10);
-        num /= 10;
+        buffer[i++] = '0' + (value % 10);
+        value /= 10;
     }
 
     while (i > 0)
