@@ -4,28 +4,41 @@ SECTIONS
 {
     . = 1M;
 
-    .multiboot :
+    .multiboot ALIGN(4) :
     {
-        *(.multiboot)
+        KEEP(*(.multiboot))
     }
 
-    .text :
+    .text ALIGN(4) :
     {
         *(.text)
+        *(.text.*)
     }
 
-    .rodata :
+    .rodata ALIGN(4) :
     {
         *(.rodata)
+        *(.rodata.*)
     }
 
-    .data :
+    .data ALIGN(4) :
     {
         *(.data)
+        *(.data.*)
     }
 
-    .bss :
+    .bss ALIGN(4) :
     {
+        *(COMMON)
         *(.bss)
+        *(.bss.*)
+        kernel_end = .;
+    }
+
+    /DISCARD/ :
+    {
+        *(.comment)
+        *(.eh_frame)
+        *(.note*)
     }
 }
