@@ -2,6 +2,7 @@
 #include "pic.h"
 #include "keyboard.h"
 #include "timer.h"
+#include "mouse.h"
 
 void irq_handler(unsigned int irq)
 {
@@ -9,6 +10,8 @@ void irq_handler(unsigned int irq)
         timer_irq_handler();
     else if (irq == 1)
         keyboard_irq_handler();
+    else if (irq == 12)
+        mouse_irq_handler();
 
     if (irq >= 8)
     {

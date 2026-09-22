@@ -1,6 +1,7 @@
 .set ALIGN,    1<<0
 .set MEMINFO,  1<<1
-.set FLAGS,    ALIGN | MEMINFO
+.set VIDEO,    1<<2
+.set FLAGS,    ALIGN | MEMINFO | VIDEO
 .set MAGIC,    0x1BADB002
 .set CHECKSUM, -(MAGIC + FLAGS)
 
@@ -10,6 +11,20 @@
 .long MAGIC
 .long FLAGS
 .long CHECKSUM
+
+/* Multiboot v1 address fields. NovaOS is loaded normally by GRUB,
+ * so these are zero and let GRUB choose the load addresses. */
+.long 0              /* header_addr */
+.long 0              /* load_addr */
+.long 0              /* load_end_addr */
+.long 0              /* bss_end_addr */
+.long 0              /* entry_addr */
+
+/* Request a linear 32-bit RGB framebuffer from GRUB. */
+.long 0              /* mode_type: linear graphics */
+.long 1024           /* width */
+.long 768            /* height */
+.long 32              /* depth */
 
 
 .section .bss

@@ -7,5 +7,6 @@ void serial_init(void);
 void serial_putchar(char c);
 void serial_write(const char *str);
 void serial_write_hex(uint32_t value);
+void serial_write_dec(uint32_t value);
 
 #endif

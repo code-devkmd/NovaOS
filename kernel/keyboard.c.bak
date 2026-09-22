@@ -33,116 +33,12 @@ static inline unsigned char inb(unsigned short port)
     return value;
 }
 
-static inline void outb(unsigned short port, unsigned char value)
-{
-    __asm__ volatile ("outb %0, %1" : : "a"(value), "Nd"(port));
-}
-
 static void buffer_push(uint16_t key)
 {
     unsigned int next = (head + 1) % KEYBOARD_BUFFER_SIZE;
     if (next == tail) return;
     buffer[head] = key;
     head = next;
-}
-
-static int wait_input_clear(void)
-{
-    uint32_t timeout = 100000;
-    while (timeout--)
-    {
-        if ((inb(0x64) & 0x02) == 0)
-            return 0;
-    }
-    return -1;
-}
-
-static int wait_output_full(void)
-{
-    uint32_t timeout = 100000;
-    while (timeout--)
-    {
-        if (inb(0x64) & 0x01)
-            return 0;
-    }
-    return -1;
-}
-
-static int keyboard_write(uint8_t value)
-{
-    if (wait_input_clear() != 0)
-        return -1;
-    outb(0x60, value);
-    return 0;
-}
-
-static int keyboard_read(uint8_t *value)
-{
-    if (!value || wait_output_full() != 0)
-        return -1;
-    *value = inb(0x60);
-    return 0;
-}
-
-static void keyboard_controller_init(void)
-{
-    uint8_t config = 0;
-    uint8_t response;
-    uint32_t timeout;
-
-    /* Stop both PS/2 ports while the shared 8042 controller is configured. */
-    wait_input_clear();
-    outb(0x64, 0xAD); /* disable keyboard */
-    wait_input_clear();
-    outb(0x64, 0xA7); /* disable mouse */
-
-    /* Drain stale controller output before issuing commands. */
-    timeout = 64;
-    while ((inb(0x64) & 0x01) && timeout--)
-        (void)inb(0x60);
-
-    /* Read controller configuration. */
-    if (wait_input_clear() == 0)
-        outb(0x64, 0x20);
-    if (wait_output_full() == 0)
-        config = inb(0x60);
-
-    /* IRQ1 enabled, keyboard clock enabled, preserve the other settings. */
-    config |= 0x01;
-    config &= (uint8_t)~0x10;
-
-    /* Write controller configuration. */
-    if (wait_input_clear() == 0)
-        outb(0x64, 0x60);
-    if (wait_input_clear() == 0)
-        outb(0x60, config);
-
-    /* Re-enable the keyboard port. */
-    if (wait_input_clear() == 0)
-        outb(0x64, 0xAE);
-
-    /* Reset the keyboard when possible, then explicitly enable scanning. */
-    if (keyboard_write(0xFF) == 0)
-    {
-        if (keyboard_read(&response) == 0 && response == 0xFA)
-        {
-            /* Keyboard reset completes with 0xAA. Ignore it if a device omits it. */
-            (void)keyboard_read(&response);
-        }
-    }
-
-    if (keyboard_write(0xF4) == 0)
-    {
-        if (keyboard_read(&response) == 0 && response != 0xFA)
-        {
-            /* Leave the device running even if firmware returns an unusual ACK. */
-        }
-    }
-
-    /* Discard any command response left in the output buffer. */
-    timeout = 16;
-    while ((inb(0x64) & 0x01) && timeout--)
-        (void)inb(0x60);
 }
 
 void keyboard_init(void)
@@ -152,8 +48,6 @@ void keyboard_init(void)
     shift_pressed = 0;
     ctrl_pressed = 0;
     extended_prefix = 0;
-
-    keyboard_controller_init();
 }
 
 void keyboard_irq_handler(void)

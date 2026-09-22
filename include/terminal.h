@@ -36,5 +36,9 @@ void terminal_set_cursor(size_t row, size_t column);
 void terminal_cursor_left(void);
 void terminal_cursor_right(void);
 void terminal_cursor_home(void);
+void terminal_cursor_blink_tick(void);
+void terminal_redraw_region(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+size_t terminal_width(void);
+size_t terminal_height(void);
 
 #endif

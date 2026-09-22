@@ -2,23 +2,32 @@
 #include "memory.h"
 #include "serial.h"
 
-#define PAGE_TABLE_ENTRIES 1024U
-#define INITIAL_MAP_MB 64U
-#define INITIAL_MAP_PAGES ((INITIAL_MAP_MB * 1024U * 1024U) / PAGE_SIZE)
+#define PAGE_SIZE_4MB 0x00400000U
+#define PAGE_DIRECTORY_ENTRIES 1024U
+#define PAGE_SIZE_FLAG 0x080U
+#define CR4_PSE 0x00000010U
 
 static uint32_t page_directory_address;
 static int paging_active;
 
-static void clear_page(uint32_t *page)
+static void clear_directory(uint32_t *directory)
 {
     uint32_t i;
-    for (i = 0; i < PAGE_TABLE_ENTRIES; i++)
-        page[i] = 0;
+    for (i = 0; i < PAGE_DIRECTORY_ENTRIES; i++)
+        directory[i] = 0;
 }
 
 static void load_page_directory(uint32_t address)
 {
     __asm__ volatile ("mov %0, %%cr3" : : "r"(address) : "memory");
+}
+
+static void enable_4mb_pages(void)
+{
+    uint32_t cr4;
+    __asm__ volatile ("mov %%cr4, %0" : "=r"(cr4));
+    cr4 |= CR4_PSE;
+    __asm__ volatile ("mov %0, %%cr4" : : "r"(cr4) : "memory");
 }
 
 static void enable_paging_cpu(void)
@@ -32,60 +41,33 @@ static void enable_paging_cpu(void)
 int paging_init(void)
 {
     uint32_t *directory;
-    uint32_t mapped_pages = INITIAL_MAP_PAGES;
-    uint32_t page;
     uint32_t directory_frame;
+    uint32_t i;
 
     if (memory_total_frames() == 0)
         return -1;
-
-    if (mapped_pages > memory_total_frames())
-        mapped_pages = memory_total_frames();
 
     directory_frame = (uint32_t)frame_alloc();
     if (directory_frame == 0)
         return -1;
 
     page_directory_address = directory_frame;
-    directory = (uint32_t *)directory_frame;
-    clear_page(directory);
+    directory = (uint32_t *)(uintptr_t)directory_frame;
+    clear_directory(directory);
 
-    for (page = 0; page < mapped_pages; page += PAGE_TABLE_ENTRIES)
-    {
-        uint32_t table_frame = (uint32_t)frame_alloc();
-        uint32_t *table;
-        uint32_t pde_index = page / PAGE_TABLE_ENTRIES;
-        uint32_t i;
+    /* Identity-map the complete 32-bit address space with 4 MiB pages.
+       This keeps GRUB's framebuffer and future MMIO regions accessible. */
+    for (i = 0; i < PAGE_DIRECTORY_ENTRIES; i++)
+        directory[i] = (i * PAGE_SIZE_4MB) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_SIZE_FLAG;
 
-        if (table_frame == 0)
-            return -1;
-
-        table = (uint32_t *)table_frame;
-        clear_page(table);
-
-        for (i = 0; i < PAGE_TABLE_ENTRIES && (page + i) < mapped_pages; i++)
-        {
-            uint32_t physical = (page + i) * PAGE_SIZE;
-            table[i] = physical | PAGE_PRESENT | PAGE_WRITABLE;
-        }
-
-        directory[pde_index] = table_frame | PAGE_PRESENT | PAGE_WRITABLE;
-    }
-
+    enable_4mb_pages();
     load_page_directory(page_directory_address);
     enable_paging_cpu();
     paging_active = 1;
 
-    serial_write("[PAGING] Identity paging enabled (first 64 MiB or available memory)\n");
+    serial_write("[PAGING] 4 MiB identity mapping enabled for 4 GiB address space\n");
     return 0;
 }
 
-int paging_enabled(void)
-{
-    return paging_active;
-}
-
-uint32_t paging_directory_address(void)
-{
-    return page_directory_address;
-}
+int paging_enabled(void) { return paging_active; }
+uint32_t paging_directory_address(void) { return page_directory_address; }

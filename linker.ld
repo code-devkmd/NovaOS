@@ -2,12 +2,14 @@ ENTRY(_start)
 
 SECTIONS
 {
-    . = 1M;
-
+    /* Multiboot v1 requires the header to be in the first 8 KiB of the file. */
     .multiboot ALIGN(4) :
     {
         KEEP(*(.multiboot))
     }
+
+    /* Load the actual kernel at the conventional 1 MiB address. */
+    . = 1M;
 
     .text ALIGN(4) :
     {

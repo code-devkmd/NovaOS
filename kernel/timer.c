@@ -1,5 +1,6 @@
 #include "timer.h"
 #include "pic.h"
+#include "terminal.h"
 
 #define PIT_CHANNEL0 0x40
 #define PIT_COMMAND  0x43
@@ -30,6 +31,7 @@ void timer_init(void)
 void timer_irq_handler(void)
 {
     ticks++;
+    terminal_cursor_blink_tick();
 }
 
 uint32_t timer_get_ticks(void)

@@ -50,3 +50,17 @@ void serial_write_hex(uint32_t value)
     for (int shift = 28; shift >= 0; shift -= 4)
         serial_putchar(digits[(value >> shift) & 0xF]);
 }
+
+void serial_write_dec(uint32_t value)
+{
+    char buffer[11];
+    int i = 10;
+    buffer[10] = 0;
+    if (value == 0) { serial_write("0"); return; }
+    while (value > 0 && i > 0)
+    {
+        buffer[--i] = (char)('0' + (value % 10));
+        value /= 10;
+    }
+    serial_write(&buffer[i]);
+}

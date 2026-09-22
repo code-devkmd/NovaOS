@@ -17,6 +17,8 @@
 #include "heap.h"
 #include "ata.h"
 #include "fs.h"
+#include "graphics.h"
+#include "mouse.h"
 
 void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_address)
 {
@@ -30,6 +32,8 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_address)
     irq_init();
     keyboard_init();
     timer_init();
+    if (graphics_init(multiboot_info_address) != 0)
+        serial_write("[GFX] Falling back to VGA text mode\n");
 
     if (memory_init(multiboot_magic, multiboot_info_address) != 0)
         panic("Physical memory initialization failed");
@@ -44,11 +48,17 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_address)
     if (fs_init() != 0)
         panic("Filesystem initialization failed");
 
-    terminal_clear();
+    terminal_init();
+
+    /* Mouse init draws the initial cursor, so it must run after
+     * terminal_init(), which clears the whole framebuffer. Doing this
+     * earlier meant the cursor was wiped out and only reappeared once
+     * the mouse physically moved. */
+    mouse_init();
 
     terminal_setcolor(VGA_COLOR_LIGHT_CYAN);
     terminal_write("========================================\n");
-    terminal_write("            NovaOS v1.8\n");
+    terminal_write("            NovaOS v2.1\n");
     terminal_write("========================================\n\n");
     terminal_setcolor(VGA_COLOR_LIGHT_CYAN);
 

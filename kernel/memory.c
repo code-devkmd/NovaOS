@@ -19,6 +19,24 @@ struct multiboot_info
     uint8_t  syms[16];
     uint32_t mmap_length;
     uint32_t mmap_addr;
+    uint32_t drives_length;
+    uint32_t drives_addr;
+    uint32_t config_table;
+    uint32_t boot_loader_name;
+    uint32_t apm_table;
+    uint32_t vbe_control_info;
+    uint32_t vbe_mode_info;
+    uint16_t vbe_mode;
+    uint16_t vbe_interface_seg;
+    uint16_t vbe_interface_off;
+    uint16_t vbe_interface_len;
+    uint64_t framebuffer_addr;
+    uint32_t framebuffer_pitch;
+    uint32_t framebuffer_width;
+    uint32_t framebuffer_height;
+    uint8_t framebuffer_bpp;
+    uint8_t framebuffer_type;
+    uint16_t color_info;
 } __attribute__((packed));
 
 struct multiboot_mmap_entry
@@ -164,6 +182,22 @@ int memory_init(uint32_t multiboot_magic, uint32_t multiboot_info_address)
 
     /* Reserve the complete kernel image, including its bootstrap stack. */
     reserve_range(0x100000, (uint64_t)kernel_end_address - 0x100000U);
+
+    /* GRUB's framebuffer is physical memory too; never hand it to the
+       allocator or paging/heap users may overwrite the display. */
+    if (info->flags & (1U << 12))
+    {
+        struct multiboot_info *fb_info = info;
+        uint64_t framebuffer_address = fb_info->framebuffer_addr;
+        uint64_t framebuffer_length =
+            (uint64_t)fb_info->framebuffer_pitch * fb_info->framebuffer_height;
+
+        if (framebuffer_address != 0 && framebuffer_length != 0)
+        {
+            reserve_range(framebuffer_address, framebuffer_length);
+            serial_write("[MEM] Framebuffer memory reserved\n");
+        }
+    }
 
     /* The bitmap itself lives inside the kernel image's BSS. */
     reserve_range((uint32_t)frame_bitmap, sizeof(frame_bitmap));

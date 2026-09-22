@@ -6,7 +6,7 @@ CFLAGS = -m32 -ffreestanding -fno-pie -fno-stack-protector -nostdlib -Iinclude
 ASFLAGS = -m32
 LDFLAGS = -m elf_i386 -T linker.ld
 
-OBJS = boot.o kernel.o terminal.o io.o keyboard.o timer.o memory.o paging.o heap.o ata.o fs.o shell.o string.o commands.o serial.o panic.o idt.o isr.o isr_stubs.o gdt.o gdt_flush.o pic.o irq.o irq_stubs.o
+OBJS = boot.o kernel.o terminal.o framebuffer.o graphics.o font8x8.o io.o keyboard.o timer.o mouse.o memory.o paging.o heap.o ata.o fs.o shell.o string.o commands.o serial.o panic.o idt.o isr.o isr_stubs.o gdt.o gdt_flush.o pic.o irq.o irq_stubs.o
 
 all: iso
 
@@ -17,6 +17,15 @@ kernel.o: kernel/kernel.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 terminal.o: kernel/terminal.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+framebuffer.o: kernel/framebuffer.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+graphics.o: kernel/graphics.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+font8x8.o: kernel/font8x8.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 io.o: kernel/io.c
@@ -61,9 +70,9 @@ kernel.bin: $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS)
 
 iso: kernel.bin
-	mkdir -p iso/boot iso/grub
+	mkdir -p iso/boot/grub
 	cp kernel.bin iso/boot/kernel.bin
-	printf '%s\n' 'set timeout=3' 'set default=0' '' 'menuentry "NovaOS" {' '    multiboot /boot/kernel.bin' '    boot' '}' > iso/grub/grub.cfg
+	printf '%s\n' 'set timeout=0' 'set default=0' 'set gfxmode=1024x768x32' 'set gfxpayload=1024x768x32' 'terminal_output gfxterm' '' 'menuentry "NovaOS" {' '    multiboot /boot/kernel.bin' '    boot' '}' > iso/boot/grub/grub.cfg
 	grub-mkrescue -o NovaOS.iso iso
 
 run: iso
@@ -71,7 +80,7 @@ run: iso
 
 clean:
 	rm -f *.o kernel.bin NovaOS.iso
-	rm -f iso/boot/kernel.bin
+	rm -rf iso
 
 .PHONY: all iso run clean
 serial.o: kernel/serial.c
@@ -80,6 +89,9 @@ serial.o: kernel/serial.c
 panic.o: kernel/panic.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+
+mouse.o: kernel/mouse.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 timer.o: kernel/timer.c
 	$(CC) $(CFLAGS) -c $< -o $@

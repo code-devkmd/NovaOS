@@ -44,7 +44,7 @@ static void prompt(void)
 
 static int available_line_space(void)
 {
-    int available = (int)VGA_WIDTH - (int)line_column - 1;
+    int available = (int)(int)terminal_width() - (int)line_column - 1;
     if (available < 0) available = 0;
     if (available > COMMAND_SIZE - 1) available = COMMAND_SIZE - 1;
     return available;
